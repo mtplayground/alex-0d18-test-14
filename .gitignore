@@ -1,6 +1,7 @@
 target/
 node_modules/
 dist/
+.env
 .db_decision
 .env.production
 .gh_token
