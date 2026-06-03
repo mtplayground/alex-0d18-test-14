@@ -11,3 +11,19 @@ export const createTodoSchema = z
   .strict();
 
 export type CreateTodoInput = z.infer<typeof createTodoSchema>;
+
+export const todoIdParamSchema = z
+  .object({
+    id: z.string().uuid("Todo id must be a valid UUID")
+  })
+  .strict();
+
+export type TodoIdParams = z.infer<typeof todoIdParamSchema>;
+
+export const updateTodoCompletedSchema = z
+  .object({
+    completed: z.boolean()
+  })
+  .strict();
+
+export type UpdateTodoCompletedInput = z.infer<typeof updateTodoCompletedSchema>;
