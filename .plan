@@ -1,0 +1,72 @@
+Architecture plan for issues #1-#18
+
+Product scope
+- Build a full-stack todo application with a React (Vite) frontend, Node.js/Express backend, PostgreSQL database, and Prisma ORM.
+- The public data model is a todo with id, text, completed, and created_at/createdAt fields.
+
+Module structure and file organization
+- Use a small monorepo layout:
+  - apps/web: React + Vite frontend.
+  - apps/api: Node.js + Express backend.
+  - packages/shared: shared TypeScript types and Zod schemas used by both apps where practical.
+  - prisma: Prisma schema and migrations, kept at the repository root or backend-adjacent depending on package manager setup.
+- Backend organization:
+  - apps/api/src/server.ts: app bootstrap and port binding.
+  - apps/api/src/app.ts: Express app composition for tests and runtime.
+  - apps/api/src/config.ts: environment loading and validation.
+  - apps/api/src/db/prisma.ts: Prisma client singleton.
+  - apps/api/src/todos/todos.routes.ts: route definitions.
+  - apps/api/src/todos/todos.service.ts: database operations and business rules.
+  - apps/api/src/todos/todos.schemas.ts: request validation schemas if not imported from shared.
+  - apps/api/src/middleware/errorHandler.ts: centralized JSON error handling.
+  - apps/api/src/test: backend unit/integration tests.
+- Frontend organization:
+  - apps/web/src/main.tsx: React entrypoint and providers.
+  - apps/web/src/App.tsx: todo page shell.
+  - apps/web/src/api/client.ts: typed fetch client.
+  - apps/web/src/api/todos.ts: todo query/mutation functions.
+  - apps/web/src/components/TodoList.tsx: list, loading, empty, and error states.
+  - apps/web/src/components/AddTodoForm.tsx: create form.
+  - apps/web/src/components/TodoItem.tsx: complete toggle and delete action.
+  - apps/web/src/test: component tests.
+- E2E tests should live under e2e or tests/e2e and exercise the deployed/dev stack through the browser.
+
+Shared types
+- Define a Todo DTO in packages/shared, normalizing API responses to:
+  - id: string
+  - text: string
+  - completed: boolean
+  - createdAt: string
+- Define Zod schemas for create todo input and route params where reuse is helpful.
+- Keep Prisma model names internal to the backend and map database created_at to API createdAt.
+
+Issue dependencies
+- Foundation:
+  - #1 creates the monorepo, React/Vite app, and Express app structure.
+  - #2 adds TypeScript, linting, and formatting across the repo.
+  - #3 adds PostgreSQL/Prisma setup.
+  - #4 adds validated environment configuration and .env.example.
+- Data:
+  - #5 depends on the foundation and creates the Todo Prisma model and migration.
+- Backend API:
+  - #6, #7, #8, and #9 depend on the Todo model and Prisma client.
+  - #10 should wrap the completed backend endpoints with consistent JSON errors after endpoint behavior exists.
+  - #15 tests the todo service and route behavior once endpoints and error handling are in place.
+- Frontend:
+  - #11 adds the typed API client and React Query provider after the backend contract is stable enough.
+  - #12 and #13 build the list and create workflows on top of #11.
+  - #14 adds toggle and delete mutations after the corresponding backend endpoints and frontend list exist.
+  - #16 tests the components after the UI flows exist.
+- Full app:
+  - #17 adds an end-to-end test for create, list, toggle, and delete.
+  - #18 adds production build scripts, serving behavior, and self-hosting notes after env and app flows are complete.
+
+Key design decisions
+- Use TypeScript throughout to keep request/response contracts explicit.
+- Use Express route handlers that delegate to a todo service so endpoint tests can cover routing while service tests cover persistence behavior.
+- Use Zod for input validation and environment validation to make bad inputs fail early with predictable error shapes.
+- Return consistent API errors in JSON, for example { "error": { "message": string, "code": string } }.
+- Use React Query for all server state, with cache invalidation after create, toggle, and delete mutations.
+- Keep frontend state minimal: form input is local state, todos come from React Query.
+- Prefer database ordering in the list endpoint: newest first by created_at descending.
+- Keep deployment prep simple: build frontend assets, run the Express API, and serve the frontend build from the backend for self-hosting unless a later issue specifies separate hosting.
