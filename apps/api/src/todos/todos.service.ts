@@ -27,3 +27,13 @@ export async function createTodo(input: CreateTodoInput): Promise<TodoResponse> 
 
   return toTodoResponse(todo);
 }
+
+export async function listTodos(): Promise<TodoResponse[]> {
+  const todos = await prisma.todo.findMany({
+    orderBy: {
+      createdAt: "desc"
+    }
+  });
+
+  return todos.map(toTodoResponse);
+}
