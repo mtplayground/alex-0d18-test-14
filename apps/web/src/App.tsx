@@ -1,6 +1,7 @@
+import type { JSX } from "react";
 import "./styles.css";
 
-export default function App() {
+export default function App(): JSX.Element {
   return (
     <main className="app-shell">
       <section className="intro" aria-labelledby="page-title">
