@@ -1,4 +1,5 @@
 import express, { type Express, type Response } from "express";
+import { todoRouter } from "./todos/todos.routes.js";
 
 type HealthResponse = {
   status: "ok";
@@ -13,6 +14,8 @@ export function createApp(): Express {
   app.get("/health", (_request, response: Response<HealthResponse>) => {
     response.status(200).json({ status: "ok" });
   });
+
+  app.use("/todos", todoRouter);
 
   return app;
 }
