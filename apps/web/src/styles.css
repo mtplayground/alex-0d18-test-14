@@ -81,6 +81,72 @@ p {
   text-align: center;
 }
 
+.todo-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 24px;
+  border: 1px solid #dce5eb;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
+  box-shadow: 0 12px 28px rgb(23 32 38 / 6%);
+}
+
+.todo-form-label {
+  color: #415564;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.todo-form-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.todo-input {
+  min-width: 0;
+  height: 44px;
+  border: 1px solid #cbd8e0;
+  border-radius: 8px;
+  background: #fbfdfe;
+  color: #172026;
+  padding: 0 12px;
+}
+
+.todo-input:focus {
+  border-color: #2f6f9f;
+  outline: 3px solid rgb(47 111 159 / 18%);
+}
+
+.todo-input[aria-invalid="true"] {
+  border-color: #c24141;
+}
+
+.todo-submit {
+  height: 44px;
+  min-width: 84px;
+  border: 0;
+  border-radius: 8px;
+  background: #2f6f9f;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0 18px;
+}
+
+.todo-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.todo-form-feedback {
+  color: #9b2c2c;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 .todo-list {
   display: grid;
   gap: 12px;
@@ -221,5 +287,13 @@ p {
   .todo-item {
     align-items: start;
     flex-direction: column;
+  }
+
+  .todo-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .todo-submit {
+    width: 100%;
   }
 }
