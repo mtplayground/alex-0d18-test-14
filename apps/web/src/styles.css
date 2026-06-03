@@ -211,21 +211,68 @@ p {
   line-height: 1.4;
 }
 
-.todo-status {
+.todo-actions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 10px;
+}
+
+.todo-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   flex: 0 0 auto;
   border: 1px solid #e0c6a8;
   border-radius: 999px;
   background: #fff7ed;
   color: #8a4b12;
+  cursor: pointer;
   font-size: 0.8125rem;
   font-weight: 700;
   padding: 6px 10px;
 }
 
-.todo-status.complete {
+.todo-toggle:has(input:checked) {
   border-color: #b7dcc7;
   background: #effaf3;
   color: #1d6842;
+}
+
+.todo-toggle:has(input:disabled),
+.todo-delete:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.todo-toggle input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #2c8a5a;
+}
+
+.todo-delete {
+  height: 34px;
+  border: 1px solid #e3b4b4;
+  border-radius: 8px;
+  background: #fff5f5;
+  color: #9b2c2c;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  padding: 0 12px;
+}
+
+.todo-action-error {
+  margin-top: 16px;
+  border: 1px solid #e3b4b4;
+  border-radius: 8px;
+  background: #fff5f5;
+  color: #9b2c2c;
+  font-size: 0.875rem;
+  font-weight: 700;
+  padding: 12px 14px;
 }
 
 .todo-state {
@@ -287,6 +334,18 @@ p {
   .todo-item {
     align-items: start;
     flex-direction: column;
+  }
+
+  .todo-actions {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .todo-toggle,
+  .todo-delete {
+    justify-content: center;
+    width: 100%;
   }
 
   .todo-form-row {

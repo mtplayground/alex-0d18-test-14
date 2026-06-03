@@ -1,7 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { JSX } from "react";
 import { ApiClientError } from "../api/client";
-import { fetchTodos, todoQueryKeys, type Todo } from "../api/todos";
+import {
+  deleteTodo,
+  fetchTodos,
+  todoQueryKeys,
+  updateTodoCompleted,
+  type Todo
+} from "../api/todos";
 import { AddTodoForm } from "./AddTodoForm";
 
 const createdAtFormatter = new Intl.DateTimeFormat(undefined, {
@@ -19,12 +25,12 @@ function formatCreatedAt(value: string): string {
   return createdAtFormatter.format(date);
 }
 
-function errorMessage(error: unknown): string {
+function errorMessage(error: unknown, fallback = "Unable to load todos"): string {
   if (error instanceof ApiClientError) {
     return error.message;
   }
 
-  return "Unable to load todos";
+  return fallback;
 }
 
 function TodoListLoading(): JSX.Element {
@@ -52,7 +58,23 @@ function TodoListError({ error }: { error: unknown }): JSX.Element {
   );
 }
 
-function TodoListItem({ todo }: { todo: Todo }): JSX.Element {
+type TodoListItemProps = {
+  isDeleting: boolean;
+  isDisabled: boolean;
+  isToggling: boolean;
+  onDelete: (todo: Todo) => void;
+  onToggle: (todo: Todo) => void;
+  todo: Todo;
+};
+
+function TodoListItem({
+  isDeleting,
+  isDisabled,
+  isToggling,
+  onDelete,
+  onToggle,
+  todo
+}: TodoListItemProps): JSX.Element {
   return (
     <li className="todo-item">
       <div className="todo-item-main">
@@ -67,14 +89,35 @@ function TodoListItem({ todo }: { todo: Todo }): JSX.Element {
           <p className="todo-meta">Created {formatCreatedAt(todo.createdAt)}</p>
         </div>
       </div>
-      <span className={todo.completed ? "todo-status complete" : "todo-status"}>
-        {todo.completed ? "Complete" : "Open"}
-      </span>
+      <div className="todo-actions" aria-label={`Actions for ${todo.text}`}>
+        <label className="todo-toggle">
+          <input
+            checked={todo.completed}
+            disabled={isDisabled}
+            type="checkbox"
+            onChange={() => {
+              onToggle(todo);
+            }}
+          />
+          <span>{isToggling ? "Saving" : todo.completed ? "Complete" : "Open"}</span>
+        </label>
+        <button
+          className="todo-delete"
+          disabled={isDisabled}
+          type="button"
+          onClick={() => {
+            onDelete(todo);
+          }}
+        >
+          {isDeleting ? "Deleting" : "Delete"}
+        </button>
+      </div>
     </li>
   );
 }
 
 export function TodoList(): JSX.Element {
+  const queryClient = useQueryClient();
   const {
     data: todos = [],
     error,
@@ -84,6 +127,34 @@ export function TodoList(): JSX.Element {
     queryKey: todoQueryKeys.all,
     queryFn: fetchTodos
   });
+  const toggleTodoMutation = useMutation({
+    mutationFn: (todo: Todo) =>
+      updateTodoCompleted(todo.id, { completed: !todo.completed }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: todoQueryKeys.all });
+    }
+  });
+  const deleteTodoMutation = useMutation({
+    mutationFn: (todo: Todo) => deleteTodo(todo.id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: todoQueryKeys.all });
+    }
+  });
+
+  const actionError =
+    toggleTodoMutation.isError || deleteTodoMutation.isError
+      ? errorMessage(
+          toggleTodoMutation.error ?? deleteTodoMutation.error,
+          "Unable to update todo"
+        )
+      : null;
+  const togglingTodoId = toggleTodoMutation.isPending
+    ? toggleTodoMutation.variables?.id
+    : null;
+  const deletingTodoId = deleteTodoMutation.isPending
+    ? deleteTodoMutation.variables?.id
+    : null;
+  const isActionPending = toggleTodoMutation.isPending || deleteTodoMutation.isPending;
 
   let content: JSX.Element;
 
@@ -97,7 +168,19 @@ export function TodoList(): JSX.Element {
     content = (
       <ul className="todo-list" aria-label="Todos">
         {todos.map((todo) => (
-          <TodoListItem key={todo.id} todo={todo} />
+          <TodoListItem
+            key={todo.id}
+            isDeleting={deletingTodoId === todo.id}
+            isDisabled={isActionPending}
+            isToggling={togglingTodoId === todo.id}
+            todo={todo}
+            onDelete={(todoToDelete) => {
+              deleteTodoMutation.mutate(todoToDelete);
+            }}
+            onToggle={(todoToToggle) => {
+              toggleTodoMutation.mutate(todoToToggle);
+            }}
+          />
         ))}
       </ul>
     );
@@ -116,6 +199,11 @@ export function TodoList(): JSX.Element {
         </span>
       </div>
       <AddTodoForm />
+      {actionError ? (
+        <div className="todo-action-error" role="alert">
+          {actionError}
+        </div>
+      ) : null}
       {content}
     </section>
   );
