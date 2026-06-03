@@ -7,6 +7,7 @@ import {
 } from "./todos.schemas.js";
 import {
   createTodo,
+  deleteTodo,
   listTodos,
   updateTodoCompleted,
   type TodoResponse
@@ -115,6 +116,42 @@ todoRouter.patch(
         error: {
           code: "INTERNAL_SERVER_ERROR",
           message: "Unable to update todo"
+        }
+      });
+    }
+  }
+);
+
+todoRouter.delete(
+  "/:id",
+  async (request: Request<{ id: string }>, response: Response<ErrorResponse>) => {
+    const parsedParams = todoIdParamSchema.safeParse(request.params);
+
+    if (!parsedParams.success) {
+      sendValidationError(response, parsedParams.error.issues);
+      return;
+    }
+
+    try {
+      const deleted = await deleteTodo(parsedParams.data.id);
+
+      if (!deleted) {
+        response.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Todo not found"
+          }
+        });
+        return;
+      }
+
+      response.status(204).send();
+    } catch (error) {
+      console.error("Failed to delete todo", error);
+      response.status(500).json({
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Unable to delete todo"
         }
       });
     }

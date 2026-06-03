@@ -63,3 +63,13 @@ export async function updateTodoCompleted(
 
   return toTodoResponse(todo);
 }
+
+export async function deleteTodo(id: string): Promise<boolean> {
+  const deleteResult = await prisma.todo.deleteMany({
+    where: {
+      id
+    }
+  });
+
+  return deleteResult.count > 0;
+}
