@@ -1,5 +1,7 @@
-import { Router, type Request, type Response } from "express";
+import { Router } from "express";
 import type { ZodIssue } from "zod";
+import { asyncHandler } from "../middleware/async-handler.js";
+import { AppError, type ErrorDetail } from "../middleware/error-handler.js";
 import {
   createTodoSchema,
   todoIdParamSchema,
@@ -9,50 +11,30 @@ import {
   createTodo,
   deleteTodo,
   listTodos,
-  updateTodoCompleted,
-  type TodoResponse
+  updateTodoCompleted
 } from "./todos.service.js";
 
-type ErrorResponse = {
-  error: {
-    code: string;
-    message: string;
-    details?: Array<{
-      path: string;
-      message: string;
-    }>;
-  };
-};
-
-type CreateTodoResponse = {
-  todo: TodoResponse;
-};
-
-type ListTodosResponse = {
-  todos: TodoResponse[];
-};
-
-type UpdateTodoResponse = {
-  todo: TodoResponse;
-};
-
-function formatValidationIssues(issues: ZodIssue[]): ErrorResponse["error"]["details"] {
+function formatValidationIssues(issues: ZodIssue[]): ErrorDetail[] {
   return issues.map((issue) => ({
     path: issue.path.join("."),
     message: issue.message
   }));
 }
 
-function sendValidationError(
-  response: Response<ErrorResponse>,
-  issues: ZodIssue[]
-): void {
-  response.status(400).json({
-    error: {
-      code: "VALIDATION_ERROR",
-      message: "Invalid todo input",
-      details: formatValidationIssues(issues)
-    }
+function validationError(issues: ZodIssue[]): AppError {
+  return new AppError({
+    statusCode: 400,
+    code: "VALIDATION_ERROR",
+    message: "Invalid todo input",
+    details: formatValidationIssues(issues)
+  });
+}
+
+function todoNotFoundError(): AppError {
+  return new AppError({
+    statusCode: 404,
+    code: "NOT_FOUND",
+    message: "Todo not found"
   });
 }
 
@@ -60,125 +42,66 @@ export const todoRouter = Router();
 
 todoRouter.get(
   "/",
-  async (_request: Request, response: Response<ListTodosResponse | ErrorResponse>) => {
-    try {
-      const todos = await listTodos();
-      response.status(200).json({ todos });
-    } catch (error) {
-      console.error("Failed to list todos", error);
-      response.status(500).json({
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Unable to list todos"
-        }
-      });
-    }
-  }
+  asyncHandler(async (_request, response) => {
+    const todos = await listTodos();
+    response.status(200).json({ todos });
+  })
 );
 
 todoRouter.patch(
   "/:id",
-  async (
-    request: Request<{ id: string }>,
-    response: Response<UpdateTodoResponse | ErrorResponse>
-  ) => {
+  asyncHandler(async (request, response) => {
     const parsedParams = todoIdParamSchema.safeParse(request.params);
 
     if (!parsedParams.success) {
-      sendValidationError(response, parsedParams.error.issues);
-      return;
+      throw validationError(parsedParams.error.issues);
     }
 
     const parsedBody = updateTodoCompletedSchema.safeParse(request.body);
 
     if (!parsedBody.success) {
-      sendValidationError(response, parsedBody.error.issues);
-      return;
+      throw validationError(parsedBody.error.issues);
     }
 
-    try {
-      const todo = await updateTodoCompleted(parsedParams.data.id, parsedBody.data);
+    const todo = await updateTodoCompleted(parsedParams.data.id, parsedBody.data);
 
-      if (!todo) {
-        response.status(404).json({
-          error: {
-            code: "NOT_FOUND",
-            message: "Todo not found"
-          }
-        });
-        return;
-      }
-
-      response.status(200).json({ todo });
-    } catch (error) {
-      console.error("Failed to update todo", error);
-      response.status(500).json({
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Unable to update todo"
-        }
-      });
+    if (!todo) {
+      throw todoNotFoundError();
     }
-  }
+
+    response.status(200).json({ todo });
+  })
 );
 
 todoRouter.delete(
   "/:id",
-  async (request: Request<{ id: string }>, response: Response<ErrorResponse>) => {
+  asyncHandler(async (request, response) => {
     const parsedParams = todoIdParamSchema.safeParse(request.params);
 
     if (!parsedParams.success) {
-      sendValidationError(response, parsedParams.error.issues);
-      return;
+      throw validationError(parsedParams.error.issues);
     }
 
-    try {
-      const deleted = await deleteTodo(parsedParams.data.id);
+    const deleted = await deleteTodo(parsedParams.data.id);
 
-      if (!deleted) {
-        response.status(404).json({
-          error: {
-            code: "NOT_FOUND",
-            message: "Todo not found"
-          }
-        });
-        return;
-      }
-
-      response.status(204).send();
-    } catch (error) {
-      console.error("Failed to delete todo", error);
-      response.status(500).json({
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Unable to delete todo"
-        }
-      });
+    if (!deleted) {
+      throw todoNotFoundError();
     }
-  }
+
+    response.status(204).send();
+  })
 );
 
 todoRouter.post(
   "/",
-  async (request: Request, response: Response<CreateTodoResponse | ErrorResponse>) => {
+  asyncHandler(async (request, response) => {
     const parsedBody = createTodoSchema.safeParse(request.body);
 
     if (!parsedBody.success) {
-      sendValidationError(response, parsedBody.error.issues);
-      return;
+      throw validationError(parsedBody.error.issues);
     }
 
-    try {
-      const todo = await createTodo(parsedBody.data);
-      response.status(201).json({ todo });
-    } catch (error) {
-      console.error("Failed to create todo", error);
-      response.status(500).json({
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Unable to create todo"
-        }
-      });
-    }
-  }
+    const todo = await createTodo(parsedBody.data);
+    response.status(201).json({ todo });
+  })
 );
