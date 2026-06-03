@@ -1,0 +1,14 @@
+{
+  "name": "alex-0d18-test-14",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "dev:api": "npm run dev --workspace apps/api",
+    "dev:web": "npm run dev --workspace apps/web",
+    "start": "npm run start --workspace apps/api"
+  }
+}
