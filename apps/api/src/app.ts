@@ -1,4 +1,5 @@
 import express, { type Express, type Response } from "express";
+import { errorHandler, notFoundHandler } from "./middleware/error-handler.js";
 import { todoRouter } from "./todos/todos.routes.js";
 
 type HealthResponse = {
@@ -16,6 +17,8 @@ export function createApp(): Express {
   });
 
   app.use("/todos", todoRouter);
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
   return app;
 }
