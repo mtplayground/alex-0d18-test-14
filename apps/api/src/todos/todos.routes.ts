@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import type { ZodIssue } from "zod";
 import { createTodoSchema } from "./todos.schemas.js";
-import { createTodo, type TodoResponse } from "./todos.service.js";
+import { createTodo, listTodos, type TodoResponse } from "./todos.service.js";
 
 type ErrorResponse = {
   error: {
@@ -18,6 +18,10 @@ type CreateTodoResponse = {
   todo: TodoResponse;
 };
 
+type ListTodosResponse = {
+  todos: TodoResponse[];
+};
+
 function formatValidationIssues(issues: ZodIssue[]): ErrorResponse["error"]["details"] {
   return issues.map((issue) => ({
     path: issue.path.join("."),
@@ -26,6 +30,24 @@ function formatValidationIssues(issues: ZodIssue[]): ErrorResponse["error"]["det
 }
 
 export const todoRouter = Router();
+
+todoRouter.get(
+  "/",
+  async (_request: Request, response: Response<ListTodosResponse | ErrorResponse>) => {
+    try {
+      const todos = await listTodos();
+      response.status(200).json({ todos });
+    } catch (error) {
+      console.error("Failed to list todos", error);
+      response.status(500).json({
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Unable to list todos"
+        }
+      });
+    }
+  }
+);
 
 todoRouter.post(
   "/",
