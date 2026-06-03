@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { JSX } from "react";
 import { ApiClientError } from "../api/client";
 import { fetchTodos, todoQueryKeys, type Todo } from "../api/todos";
+import { AddTodoForm } from "./AddTodoForm";
 
 const createdAtFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
@@ -114,6 +115,7 @@ export function TodoList(): JSX.Element {
           {todos.length === 1 ? "item" : "items"}
         </span>
       </div>
+      <AddTodoForm />
       {content}
     </section>
   );
